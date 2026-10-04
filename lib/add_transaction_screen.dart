@@ -202,7 +202,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   ),
                   child: const Text('Lưu', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
-              ),git add .
+              ),
             ],
           ),
         ),

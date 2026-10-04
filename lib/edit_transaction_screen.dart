@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 class EditTransactionScreen extends StatefulWidget {
   const EditTransactionScreen({super.key});
 
