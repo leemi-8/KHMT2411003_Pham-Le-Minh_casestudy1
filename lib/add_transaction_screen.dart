@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'database_helper.dart';
+import 'transaction_model.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -11,6 +13,75 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   // Biến tạm để giả lập việc chọn Loại và Danh mục trên UI
   bool isExpense = true; // true: Chi tiêu, false: Thu nhập
   String selectedCategory = 'Ăn uống';
+
+  // Quản lý các ô nhập liệu
+  late TextEditingController _dateController;
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+  DateTime _selectedDate = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    // Khởi tạo ngày mặc định là ngày hiện tại (dd/MM/yyyy)
+    _dateController = TextEditingController(
+      text: "${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}",
+    );
+  }
+
+  @override
+  void dispose() {
+    _dateController.dispose();
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  // Hàm bật lịch để người dùng chọn ngày
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _dateController.text =
+        "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+      });
+    }
+  }
+
+  // Hàm thực hiện lưu giao dịch vào Cơ sở dữ liệu
+  Future<void> _saveTransaction() async {
+    final amountText = _amountController.text.replaceAll('.', '').trim();
+    if (amountText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập số tiền!')),
+      );
+      return;
+    }
+
+    final newTransaction = TransactionModel(
+      // Tự sinh ID ngẫu nhiên theo mốc thời gian
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: _noteController.text.trim().isEmpty ? selectedCategory : _noteController.text.trim(),
+      amount: int.parse(amountText),
+      isExpense: isExpense,
+      category: selectedCategory,
+      date: _dateController.text,
+    );
+
+    // Lưu vào CSDL
+    await DatabaseHelper.instance.insertTransaction(newTransaction);
+
+    if (mounted) {
+      // Trả về true để màn hình chính biết và làm mới lại dữ liệu
+      Navigator.pop(context, true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +117,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => setState(() => isExpense = true),
+                        onTap: () => setState(() {
+                          isExpense = true;
+                          selectedCategory = 'Ăn uống';
+                        }),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
@@ -66,7 +140,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     ),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => setState(() => isExpense = false),
+                        onTap: () => setState(() {
+                          isExpense = false;
+                          selectedCategory = 'Lương';
+                        }),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
@@ -102,7 +179,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   child: DropdownButton<String>(
                     value: selectedCategory,
                     isExpanded: true,
-                    items: [
+                    items: isExpense
+                        ? [
                       DropdownMenuItem(
                         value: 'Ăn uống',
                         child: Row(
@@ -124,6 +202,37 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         value: 'Di chuyển',
                         child: Text('Di chuyển'),
                       ),
+                      const DropdownMenuItem(
+                        value: 'Mua sắm',
+                        child: Text('Mua sắm'),
+                      ),
+                    ]
+                        : [
+                      DropdownMenuItem(
+                        value: 'Lương',
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE8F5E9),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.payments, color: Color(0xFF2E9E6B), size: 18),
+                            ),
+                            const SizedBox(width: 10),
+                            const Text('Lương'),
+                          ],
+                        ),
+                      ),
+                      const DropdownMenuItem(
+                        value: 'Thưởng',
+                        child: Text('Thưởng'),
+                      ),
+                      const DropdownMenuItem(
+                        value: 'Thu nhập khác',
+                        child: Text('Thu nhập khác'),
+                      ),
                     ],
                     onChanged: (val) {
                       if (val != null) setState(() => selectedCategory = val);
@@ -133,10 +242,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 3. Ô Nhập Số tiền
+              // 3. Ô Nhập Số tiền (Đã gắn controller)
               const Text('Số tiền', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               const SizedBox(height: 8),
               TextField(
+                controller: _amountController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   hintText: 'Nhập số tiền',
@@ -156,7 +266,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 8),
               TextField(
                 readOnly: true,
-                controller: TextEditingController(text: '12/04/2025'),
+                controller: _dateController,
+                onTap: () => _selectDate(context),
                 decoration: InputDecoration(
                   suffixIcon: const Icon(Icons.calendar_month_outlined, color: Colors.grey),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -169,10 +280,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 5. Ô Nhập Ghi chú
+              // 5. Ô Nhập Ghi chú (Đã gắn controller)
               const Text('Ghi chú', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               const SizedBox(height: 8),
               TextField(
+                controller: _noteController,
                 maxLines: 3,
                 decoration: InputDecoration(
                   hintText: 'Nhập ghi chú (tùy chọn)',
@@ -186,15 +298,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(height: 30),
 
-              // 6. Nút Lưu
+              // 6. nút Lưu (Đã nối hàm _saveTransaction)
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Tạm thời chỉ quay về
-                    Navigator.pop(context);
-                  },
+                  onPressed: _saveTransaction,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1967D2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

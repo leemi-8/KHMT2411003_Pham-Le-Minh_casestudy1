@@ -240,7 +240,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
 
-      // NÚT THÊM GIAO DỊCH (+)
+      // NÚT THÊM GIAO DỊCH
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(

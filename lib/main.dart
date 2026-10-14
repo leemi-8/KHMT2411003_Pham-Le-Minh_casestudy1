@@ -174,7 +174,7 @@ class VndInputFormatter extends TextInputFormatter {
 }
 
 // ---------------------------------------------------------------------------
-// MÀN HÌNH: dùng chung cho Thêm (initial == null) và Sửa (initial != null)
+// MÀN HÌNH: dùng chung cho Thêm (initial == null) và Sửa (initial != Null)
 // ---------------------------------------------------------------------------
 
 class TransactionFormScreen extends StatefulWidget {

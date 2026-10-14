@@ -44,7 +44,7 @@ class DatabaseHelper {
     return await db.insert('transactions', item.toMap());
   }
 
-  // Lấy danh sách giao dịch
+  // lấy danh sách giao dịch
   Future<List<TransactionModel>> getAllTransactions() async {
     final db = await instance.database;
     final result = await db.query('transactions', orderBy: 'id DESC');

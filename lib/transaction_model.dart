@@ -27,7 +27,7 @@ class TransactionModel {
     };
   }
 
-  // Chuyển Map từ SQLite về lại đối tượng Dart
+  // chuyển Map từ SQLite về lại đối tượng Dart
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
     return TransactionModel(
       id: map['id'],
